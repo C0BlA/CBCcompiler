@@ -46,12 +46,17 @@ void	addstmt(int, int, int);
 void	substmt(int, int, int);
 int	insertsym(char *);
 %}
+/*--- 우선순위 ---*/
 
-%token	MAIN ADD SUB ASSGN ID NUM STMTEND START END ID2
+%left ADD SUB
+%left MUL DIV
+%right ASSGN
+
+%token	MAIN ADD SUB ASSGN ID NUM STMTEND START END ID2 
 %token  IF ELSE WHILE
 %token  GREATER GREATEREQUAL LESS LESSEQUAL EQUAL NOTEQUAL AND OR
 
-
+/*--- 생성 규칙 부분 ---*/
 
 %%
 program: 	functions 		{ if (errorcnt==0) {codegen($1); dwgen();} }
@@ -84,26 +89,55 @@ stmt: 		expr_stmt
 		;
 		
 expr_stmt:	logical_expr
-		| ID ASSGN expr STMTEND	{ $1->token = ID2; $$=MakeOPTree(ASSGN, $1, $3);}
+		|	ID ASSGN expr STMTEND	{ $1->token = ID2; $$=MakeOPTree(ASSGN, $1, $3);}
+		;
+/*-- 산술 expr 완료, ID, 숫자는 term으로 넘김 --*/
+expr: 		'(' expr')' {$$ = $2};	
+		|	expr ADD term	{ $$=MakeOPTree(ADD, $1, $3); }
+		|	expr SUB term	{ $$=MakeOPTree(SUB, $1, $3); }
+		|	expr MUL term 	{ $$=MakeOPTree(MUL, $1, $3); }
+		|	expr DIV term 	{ $$=MakeOPTree(DIV, $1, $3); }
+		|	expr MOD term 	{ $$=MakeOPTree(MOD, $1, $3); }		
+		|	term
 		;
 
-expr: 		expr ADD term	{ $$=MakeOPTree(ADD, $1, $3); }
-		| expr SUB term	{ $$=MakeOPTree(SUB, $1, $3); }
-		| term
-		;
-
-
+/*-- term 확인인 완료 --*/
 term:		ID		{ /* ID node is created in lex */ }
-		| NUM		{ /* NUM node is created in lex */ }
+		|	NUM		{ /* NUM node is created in lex */ }
 		;
 
-dcl: ID STMTEND {insertsym(symtbl{$1->tokenval}); };
-if_stmt : IF '(' logical_expr ')' stmt {$$ =MakeOPTree(IF, $3, $5)}
-        | IF '(' logical_expr ')' stmt ELSE stmt {$$=MakeOPTree(ELSE, MakeOPTree(IF, $3, $5), $7); };
-while_stmt:	;
-logical_expr:	;
+dcl: ID STMTEND {insertsym(symtbl[$1->tokenval]); };
+
+if_stmt :	IF '(' logical_expr ')' stmt {$$ =MakeOPTree(IF, $3, $5)}
+        |	IF '(' logical_expr ')' stmt ELSE stmt {$$=MakeOPTree(ELSE, MakeOPTree(IF, $3, $5), $7); };
+
+while_stmt:	WHILE '(' logical_expr ')' stmt { $$ = MakeOPTree(WHILE, $3, $5); };
+
+
+logical_expr:
+			'(' logical_expr ')' { $$ = $2; }
+		/*-----관계 연산자-----*/
+		|	expr GREATER term 	{ $$=MakeOPTree(GREATER, $1, $3); }		
+		|	expr LESS term 	{ $$=MakeOPTree(LESS, $1, $3); }	
+
+		|	expr GREATEREQUAL term 	{ $$=MakeOPTree(GREATEREQUAL, $1, $3); }		
+		|	expr LESSEQUAL term 	{ $$=MakeOPTree(LESSEQUAL, $1, $3); }		
+		|	expr EQUAL term 	{ $$=MakeOPTree(EQUAL, $1, $3); }		
+		|	expr NOTEQUAL term 	{ $$=MakeOPTree(NOTEQUAL, $1, $3); }		
+
+		/*-----논리 연산자-----*/
+		|	logical_expr AND logical_expr 	{ $$=MakeOPTree(AND, $1, $3); }		
+		|	logical_expr OR logical_expr 	{ $$=MakeOPTree(OR, $1, $3); }		
+		|	NOT logical_expr 				{ $$=MakeOPTree(NOT,$2, NULL);}
+		|	expr { $$ = $2; }		
+		;
+
+
 
 %%
+
+
+
 int main(int argc, char *argv[]) 
 {
 	printf("\nsample CBU C compiler v3.0\n");
