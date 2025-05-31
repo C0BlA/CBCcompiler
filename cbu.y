@@ -48,6 +48,7 @@ int	insertsym(char *);
 %}
 /*--- 우선순위 ---*/
 
+
 %left ADD SUB
 %left MUL DIV
 %right ASSGN
@@ -101,9 +102,9 @@ expr: 		'(' expr')' {$$ = $2};
 		|	term
 		;
 
-/*-- term 확인인 완료 --*/
-term:		ID		{ /* ID node is created in lex */ }
-		|	NUM		{ /* NUM node is created in lex */ }
+/*-- term 확인 완료 --*/
+term:		ID		{ $$ = $1; }
+		|	NUM		{ $$ = $1;}
 		;
 
 dcl: ID STMTEND {insertsym(symtbl[$1->tokenval]); };
@@ -129,7 +130,7 @@ logical_expr:
 		|	logical_expr AND logical_expr 	{ $$=MakeOPTree(AND, $1, $3); }		
 		|	logical_expr OR logical_expr 	{ $$=MakeOPTree(OR, $1, $3); }		
 		|	NOT logical_expr 				{ $$=MakeOPTree(NOT,$2, NULL);}
-		|	expr { $$ = $2; }		
+		|	expr { $$ = $1; }		
 		;
 
 

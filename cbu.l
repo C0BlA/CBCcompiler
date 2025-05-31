@@ -88,6 +88,7 @@ while	{return(WHILE);}
 "=="	{return(EQUAL);}
 "!="	{return(NOTEQUAL);}
 
+
 \>		{return(GREATER);}
 \<		{return(LESS);}
 
@@ -107,7 +108,6 @@ while	{return(WHILE);}
 
 /*반환*/
 return	{return(RETURN);}
-perror	{return(PERROR);}
 
 
 
@@ -117,8 +117,8 @@ perror	{return(PERROR);}
 
 ;		{return(STMTEND); }
 main		{return(MAIN); }
-{id}		{temp=insertsym(yytext); yylval=MakeNode(ID, temp); return(ID);}
 \*{id}		{temp=insertsym(yytext+1); yylval=MakeNode(POINTERID, temp); return(POINTERID);}
+{id}		{temp=insertsym(yytext); yylval=MakeNode(ID, temp); return(ID);}
 -?{digit}+		{sscanf(yytext, "%d", &temp); yylval=MakeNode(NUM, temp); return(NUM);}
 .		{printf("invalid token %s\n", yytext); }
 %%
