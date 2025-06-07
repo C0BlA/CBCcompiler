@@ -108,7 +108,7 @@ return	{return(RETURN);}
 
 
 ;		{return(STMTEND); }
-main		{return(MAIN); }
+//main		{return(MAIN); }
 {id}    {
     temp = insertsym(yytext);
     printf("토큰 인식: %s (index %d)\n", yytext, temp);  // debug

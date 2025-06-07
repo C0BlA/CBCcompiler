@@ -97,7 +97,7 @@ function:
 	;
 
 fun_header:
-	ID '(' ')'  { $$ = $1; } 
+	MAIN '(' ')'
 	;
 
 fun_body:

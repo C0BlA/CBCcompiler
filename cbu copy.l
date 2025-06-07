@@ -3,20 +3,7 @@
 #include "cbc.h"
 #define MAXSYM	100
 #define	MAXSYMLEN	20
-#define YYSTYPE Node*
 char symtbl[MAXSYM][MAXSYMLEN];
-int yylex(void);
-void yyerror(const char *s);
-typedef struct nodeType {
-	int token;
-	int tokenval;
-	struct nodeType *son;
-	struct nodeType *brother;
-	} Node;
-
-Node* MakeNode(int, ...);
-
-
 int lineno=1;
 int insertsym();
 int maxsym=0;
@@ -54,6 +41,12 @@ id		{letter}({letter}|{digit})*
 
 \=		{return(ASSGN); }
 
+"int" {return(INT);}
+"float" {return(FLOAT);}
+"double" {return(DOUBLE);}
+"char" {return(CHAR);}
+"string" {return(STRING);}
+
 
 
 if		{return(IF);}
@@ -61,6 +54,12 @@ else	{return(ELSE);}
 
 while	{return(WHILE);}
 
+
+"+=" 	{return(ASSGNADD);}
+"-=" 	{return(ASSGNSUB);}
+"*="	{return(ASSGNMUL);}
+"/="	{return(ASSGNDIV);}
+"%="	{return(ASSGNMOD);}
 
 
 \+		{return(ADD); }
@@ -109,12 +108,7 @@ return	{return(RETURN);}
 
 ;		{return(STMTEND); }
 main		{return(MAIN); }
-{id}    {
-    temp = insertsym(yytext);
-    printf("토큰 인식: %s (index %d)\n", yytext, temp);  // debug
-    yylval = MakeNode(ID, temp);
-    return(ID);
-}
+{id}		{temp=insertsym(yytext); yylval=MakeNode(ID, temp); return(ID);}
 -?{digit}+		{sscanf(yytext, "%d", &temp); yylval=MakeNode(NUM, temp); return(NUM);}
 .		{printf("invalid token %s\n", yytext); }
 %%
@@ -137,4 +131,4 @@ int i;
 	return(0);
 }
 
-int yywrap(void) { return 1; }
+yywrap() {}

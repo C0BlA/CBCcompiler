@@ -76,16 +76,8 @@ void yyerror(const char *s);
 %%
 
 program:
-	functions {
-	if (errorcnt == 0) {
-		printf("✅ codegen 진입\n");
-		codegen($1);
-		dwgen();
-	} else {
-		printf("❌ errorcnt = %d, 코드 생성 안함\n", errorcnt);
-	}
-	}
-;
+	functions { if (errorcnt==0) { codegen($1); dwgen(); } }
+	;
 
 functions:
 	functions function
@@ -97,7 +89,7 @@ function:
 	;
 
 fun_header:
-	ID '(' ')'  { $$ = $1; } 
+	MAIN '(' ')'
 	;
 
 fun_body:
@@ -110,7 +102,8 @@ dcl_list:
 	;
 
 dcl:
-	ID STMTEND { insertsym(symtbl[$1->tokenval]); $$ = NULL; }
+	ID STMTEND { insertsym(symtbl[$1->tokenval]); }
+	;
 
 stmt_list:
 	stmt_list stmt { $$ = MakeListTree($1, $2); }
@@ -129,34 +122,49 @@ expr_stmt:
 	expr STMTEND { $$ = $1; }
 	;
 
-expr
-	: '(' expr ')' { $$ = $2; }
+expr:
+	'(' expr ')' { $$ = $2; }
+
 	| expr ADD term { $$ = MakeOPTree(ADD, $1, $3); }
 	| expr SUB term { $$ = MakeOPTree(SUB, $1, $3); }
+	| expr MUL term { $$ = MakeOPTree(MUL, $1, $3); }
+	| expr DIV term { $$ = MakeOPTree(DIV, $1, $3); }
+	| expr MOD term { $$ = MakeOPTree(MOD, $1, $3); }
+
+	| expr BITAND expr { $$ = MakeOPTree(BITAND, $1, $3); }
+	| expr BITOR expr { $$ = MakeOPTree(BITOR, $1, $3); }
+	| expr BITXOR expr { $$ = MakeOPTree(BITXOR, $1, $3); }
+	| BITNOT expr { $$ = MakeOPTree(BITNOT, $2, NULL); }
+
+	| expr RSHIFT expr { $$ = MakeOPTree(RSHIFT, $1, $3); }
+	| expr LSHIFT expr { $$ = MakeOPTree(LSHIFT, $1, $3); }
+
+	| INCREASE expr { $$ = MakeOPTree(INCREASE, $2, NULL); }
+	| DECREASE expr { $$ = MakeOPTree(DECREASE, $2, NULL); }
+	| expr INCREASE { $$ = MakeOPTree(INCREASE, $1, NULL); }
+	| expr DECREASE { $$ = MakeOPTree(DECREASE, $1, NULL); }
+
+	| expr GREATER term { $$ = MakeOPTree(GREATER, $1, $3); }
+	| expr LESS term { $$ = MakeOPTree(LESS, $1, $3); }
+	| expr GREATEREQUAL term { $$ = MakeOPTree(GREATEREQUAL, $1, $3); }
+	| expr LESSEQUAL term { $$ = MakeOPTree(LESSEQUAL, $1, $3); }
+	| expr EQUAL term { $$ = MakeOPTree(EQUAL, $1, $3); }
+	| expr NOTEQUAL term { $$ = MakeOPTree(NOTEQUAL, $1, $3); }
+
+	| expr AND expr { $$ = MakeOPTree(AND, $1, $3); }
+	| expr OR expr { $$ = MakeOPTree(OR, $1, $3); }
+	| NOT expr { $$ = MakeOPTree(NOT, $2, NULL); }
+
+	| ID ASSGN expr { $1->token = ID2; $$ = MakeOPTree(ASSGN, $1, $3); }
+
 	| term
 	;
 
-term
-	: term MUL factor { $$ = MakeOPTree(MUL, $1, $3); }
-	| term DIV factor { $$ = MakeOPTree(DIV, $1, $3); }
-	| term MOD factor { $$ = MakeOPTree(MOD, $1, $3); }
-	| factor
-	;
-
-factor
-	: BITNOT factor { $$ = MakeOPTree(BITNOT, $2, NULL); }
-	| NOT factor { $$ = MakeOPTree(NOT, $2, NULL); }
-	| INCREASE factor { $$ = MakeOPTree(INCREASE, $2, NULL); }
-	| DECREASE factor { $$ = MakeOPTree(DECREASE, $2, NULL); }
-	| primary
-	;
-
-primary
-	: ID ASSGN expr { $1->token = ID2; $$ = MakeOPTree(ASSGN, $1, $3); }
-	| ID { $$ = $1; }
+term:
+	ID { $$ = $1; }
 	| NUM { $$ = $1; }
 	;
-	
+
 if_stmt:
 	IF '(' expr ')' stmt %prec LOWER_THAN_ELSE { $$ = MakeOPTree(IF, $3, $5); }
 	| IF '(' expr ')' stmt ELSE stmt { $$ = MakeOPTree(ELSE, MakeOPTree(IF, $3, $5), $7); }
@@ -191,8 +199,7 @@ int main(int argc, char *argv[])
 
 void yyerror(const char *s)
 {
-	printf("❌ syntax error at line %d: %s\n", lineno, s);
-	errorcnt++;
+	printf("syntax error: %s\n", s);
 }
 
 Node *MakeOPTree(int op, Node *operand1, Node *operand2)
@@ -291,17 +298,11 @@ void DFSTree(Node *n)
 			}
 			break;
 		}
-		default: {
-			Node *left = n->son;
-			Node *right = left ? left->brother : NULL;
-
-			DFSTree(left);
-			if (right) DFSTree(right);
-
+		default:
+			DFSTree(n->son);
 			prtcode(n->token, n->tokenval);
 			DFSTree(n->brother);
 			break;
-		}
 	}
 }
 

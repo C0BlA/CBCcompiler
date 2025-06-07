@@ -3,7 +3,6 @@
 #include "cbc.h"
 #define MAXSYM	100
 #define	MAXSYMLEN	20
-#define YYSTYPE Node*
 char symtbl[MAXSYM][MAXSYMLEN];
 int yylex(void);
 void yyerror(const char *s);
